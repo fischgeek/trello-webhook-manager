@@ -4,8 +4,8 @@
 
 <head>
     <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
-    <link href=" https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC " crossorigin="anonymous ">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM " crossorigin="anonymous "></script>
+    <link href=" https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC " crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM " crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script>
         $(document).ready(function() {
@@ -66,13 +66,13 @@
                 var webhooks = window.Trello.get(url, fetchSuccess)
             })
 
-            $('#description').on('input', function() {
+            $('#webhook-description').on('input', function() {
                 updatePayload()
             })
-            $('#callbackURL').on('input', function() {
+            $('#webhook-callbackURL').on('input', function() {
                 updatePayload()
             })
-            $('#idModel').on('input', function() {
+            $('#webhook-model-id').on('input', function() {
                 updatePayload()
             })
             $('#submit').click(function() {
@@ -195,12 +195,13 @@
                 const list = prepListForModalName($('#ddl-lists-button').text())
                 const card = prepCardForModalName($('#ddl-cards-button').text())
                 newText = board + list + card
-                $('#find-model-output').text(newText)
+                $('#webhook-description').val(newText)
+                updatePayload()
             }
             function updatePayload() {
-                var desc = $('#description').val()
-                var callUrl = $('#callbackURL').val()
-                var modelId = $('#idModel').val()
+                var desc = $('#webhook-description').val()
+                var callUrl = $('#webhook-callbackURL').val()
+                var modelId = $('#webhook-model-id').val()
                 var finalObj = {
                     description: desc,
                     callbackURL: callUrl,
