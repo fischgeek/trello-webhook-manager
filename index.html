@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html>
+
+<head>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
+    <link href=" https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC " crossorigin="anonymous ">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM " crossorigin="anonymous "></script>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script>
+        $(document).ready(function() {
+            $('#load-auth').click(function() {
+                function reloadSuccess(msg) {
+                    console.log('reload success')
+                    console.log(msg)
+                }
+
+                function reloadFailed(msg) {
+                    console.log('reload failed')
+                    console.log(msg)
+                }
+
+                $.ajax({
+                    url: "https://api.trello.com/1/client.js?key=" + $('#apiKey').val(),
+                    dataType: "script",
+                    success: reloadSuccess,
+                    fail: reloadFailed
+                })
+            })
+
+            $('#mybutton').click(function() {
+                var myList = '5b92743eee08f83205eb7a5f'
+
+                var creationSuccess = function(data) {
+                    console.log('Card created successfully.')
+                    console.log(JSON.stringify(data, null, 2))
+                }
+
+                var newCard = {
+                    name: 'New Test Card',
+                    desc: 'This is the description of our new card.',
+                    idList: myList,
+                    pos: 'top'
+                }
+
+                window.Trello.post('/cards/', newCard, creationSuccess)
+            })
+
+            $('#btn-get-webhooks').click(() => {
+                var fetchSuccess = function(data) {
+                    var webhooks = data
+                    for (var i = 0; i < webhooks.length; i++) {
+                        console.log(webhooks[i].id)
+                        var hook = webhooks[i]
+                        console.log(hook)
+                        var startPre = "<pre>"
+                        var hookInfo = JSON.stringify(hook, null, 4)
+                        var endPre = "</pre>"
+                        $('#body').append(startPre + hookInfo + endPre)
+                    }
+                }
+
+                var tok = $('#apitoken').val()
+                var url = '/tokens/' + tok + '/webhooks/'
+                console.log(url)
+                var webhooks = window.Trello.get(url, fetchSuccess)
+            })
+
+            $('#description').on('input', function() {
+                updatePayload()
+            })
+            $('#callbackURL').on('input', function() {
+                updatePayload()
+            })
+            $('#idModel').on('input', function() {
+                updatePayload()
+            })
+            $('#submit').click(function() {
+                var hookSuccess = function(data) {
+                    console.log('hook success')
+                    console.log(data)
+                }
+                var hookFail = function(data) {
+                    console.log('hook fail')
+                    console.log(data)
+                }
+                var tok = $('#apitoken').val()
+                var paramObj = {
+                    token: tok,
+                    description: $('#description').val(),
+                    callbackURL: $('#callbackURL').val(),
+                    idModel: $('#idModel').val()
+                }
+                window.Trello.post('/webhooks/', paramObj, hookSuccess, hookFail)
+            })
+
+            $('#btn-find-model').click(() => {
+                loadBoardsIntoFindModal()
+            })
+
+            // respond to different board selection
+            $(document).on('click', '#ddl-boards li a', (e) => {
+                const el = $(e.target)
+                const boardId = el.attr('board_id')
+                $('#ddl-boards-button').text(el.text())
+                updateModelNamingConvention()
+                updateWebhookModelId(boardId)
+                loadListsIntoFindModal(boardId)
+            })
+
+            // respond to different list selection
+            $(document).on('click', '#ddl-lists li a', (e) => {
+                const el = $(e.target)
+                const listId = el.attr('list_id')
+                $('#ddl-lists-button').text(el.text())
+                updateModelNamingConvention()
+                updateWebhookModelId(listId)
+                loadCardsIntoFindModal(listId)
+            })
+
+            // respond to different card selection
+            $(document).on('click', '#ddl-cards li a', (e) => {
+                const el = $(e.target)
+                const cardId = el.attr('card_id')
+                $('#ddl-cards-button').text(el.text())
+                updateModelNamingConvention()
+                updateWebhookModelId(cardId)
+            })
+
+            async function loadBoardsIntoFindModal() {
+                var boards = await getBoards()
+                $('#find-model-modal').modal('show')
+                $('#ddl-boards').empty()
+                for (var i = 0; i < boards.length; i++) {
+                    var board = boards[i]
+                    $('#ddl-boards').append('<li><a class="dropdown-item" href="#" board_id="'+ board.id +'">' + board.name + '</a></li>')
+                }
+            }
+            async function loadListsIntoFindModal(boardId) {
+                var lists = await getLists(boardId)
+                $('#ddl-lists-button').text('Select a List')
+                $('#ddl-lists').empty()
+                for (var i = 0; i < lists.length; i++) {
+                    var list = lists[i]
+                    $('#ddl-lists').append('<li><a class="dropdown-item" href="#" list_id="' + list.id + '">' + list.name + '</a></li>')
+                }
+            }
+            async function loadCardsIntoFindModal(listId) {
+                const cards = await getCards(listId)
+                $('#ddl-cards-button').text('Select a Card')
+                $('#ddl-cards').empty()
+                for (var i = 0; i < cards.length; i++) {
+                    var card = cards[i]
+                    $('#ddl-cards').append('<li><a class="dropdown-item" href="#" card_id="' + card.id + '">' + card.name + '</a></li>')
+                }
+            }
+            function updateWebhookModelId(modelId) {
+                $('#webhook-model-id').val(modelId)
+            }
+            function prepForModalName(txt) {
+                return txt.toLowerCase().replace(/\s/g, '-')
+            }
+            function updateModelNamingConvention(name) {
+                const board = $('#ddl-boards-button').text()
+                const list = $('#ddl-lists-button').text()
+                const card = $('#ddl-cards-button').text()
+                newText = prepForModalName(board + ':' + list + ':' + card)
+                $('#find-model-output').text(newText)
+            }
+            function updatePayload() {
+                var desc = $('#description').val()
+                var callUrl = $('#callbackURL').val()
+                var modelId = $('#idModel').val()
+                var finalObj = {
+                    description: desc,
+                    callbackURL: callUrl,
+                    idModel: modelId
+                }
+                $('#webhook-payload').text(JSON.stringify(finalObj, null, 4))
+            }
+            function getBoards() {
+                var tok = $('#apitoken').val()
+                var url = '/members/me/boards/?filter=open&fields=name&token=' + tok
+                return window.Trello.get(url, function (data) {return data})
+            }
+            function getLists(boardId) {
+                var tok = $('#apitoken').val()
+                var url = '/boards/' + boardId + '/lists?fields=name&token=' + tok
+                return window.Trello.get(url, function (data) { return data })
+            }
+            function getCards(listId) {
+                var tok = $('#apitoken').val()
+                var url = '/lists/' + listId + '/cards?fields=name&token=' + tok
+                return window.Trello.get(url, function (data) { return data })
+            }
+        })
+    </script>
+    <style>
+        .row {
+            margin-bottom: 20px;
+        }
+        
+        #submit {
+            margin-top: 5px;
+        }
+
+        .material-icons {
+            vertical-align: middle;
+            line-height: 0 !important;
+            position: relative;
+            top: -1px;
+        }
+    </style>
+</head>
+
+<body id="body" class="container">
+    <div class="row">
+        <div class="col">
+            <h1>Trello Webhook Manager</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h2>Authorization</h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-3">
+            <input type="password" class="form-control" id="apiKey" placeholder="API Key" name="apikey" value="">
+        </div>
+        <div class="col-3">
+            <input type="password" class="form-control" id="apitoken" placeholder="API Token" name="apitoken" value="">
+        </div>
+        <div class="col-3">
+            <button type="button" class="btn btn-primary" id="load-auth">Authorize</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h3>Register a New Webhook</h3>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 col-lg-5 bottomspace-medium">
+            <div class="card">
+                <div class="card-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="description">Description:</label>
+                            <input type="text" id="webhook-description" class="form-control w-100" name="description" autocomplete="off" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="callbackURL">Callback URL:</label>
+                            <input type="text" id="webhook-callbackURL" class="form-control" name="callbackURL" autocomplete="off" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="idModel">ID of the Model:</label>
+                            <div class="input-group mb-3">
+                                <input id="webhook-model-id" type="text" class="form-control">
+                                <button class="btn btn-secondary" type="button" id="btn-find-model"><span class="material-icons">search</span></button>
+                            </div>
+                        </div>
+
+                        <button id="submit" class="btn btn-primary">
+                            <span class="spinner"></span>
+                            Submit
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-12 col-lg-7">
+            <div class="card bg-dark">
+                <div class="card-body">
+                    <pre id="webhook-payload" class="text-white"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h3>Your Webhooks</h3>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-4">
+            <button type="button" id="btn-get-webhooks" class="btn btn-secondary">Get Webhooks</button>
+        </div>
+    </div>
+    <div id="find-model-modal" class="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Locate Model</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col">
+                            <h5>Boards</h5>
+                            <div class="dropdown">
+                                <button id="ddl-boards-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Board</button>
+                                <ul id="ddl-boards" class="dropdown-menu" aria-labelledby="ddl-boards-button"></ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <h5>Lists</h5>
+                            <div class="dropdown">
+                                <button id="ddl-lists-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a List</button>
+                                <ul id="ddl-lists" class="dropdown-menu" aria-labelledby="ddl-lists-button"></ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <h5>Cards</h5>
+                            <div class="dropdown">
+                                <button id="ddl-cards-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Card</button>
+                                <ul id="ddl-cards" class="dropdown-menu" aria-labelledby="ddl-cards-button"></ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col">
+                            <pre id="find-model-output"></pre>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</body>
+
+</html>
