@@ -98,33 +98,39 @@
                 loadBoardsIntoFindModal()
             })
 
-            // respond to different board selection
-            $(document).on('click', '#ddl-boards li a', (e) => {
+            // respond to board selection
+            async function handleBoardsChange(e) {
                 const el = $(e.target)
-                const boardId = el.attr('board_id')
+                const boardId = el.attr('trello-id')
                 $('#ddl-boards-button').text(el.text())
-                updateModelNamingConvention()
                 updateWebhookModelId(boardId)
-                loadListsIntoFindModal(boardId)
-            })
-
-            // respond to different list selection
-            $(document).on('click', '#ddl-lists li a', (e) => {
-                const el = $(e.target)
-                const listId = el.attr('list_id')
-                $('#ddl-lists-button').text(el.text())
+                await loadListsIntoFindModal(boardId)
                 updateModelNamingConvention()
-                updateWebhookModelId(listId)
-                loadCardsIntoFindModal(listId)
+            }
+            $(document).on('click', '#ddl-boards li a', (e) => {
+                handleBoardsChange(e)
             })
 
-            // respond to different card selection
+            // respond to list selection
+            async function handlListsChange(e) {
+                const el = $(e.target)
+                const listId = el.attr('trello-id')
+                $('#ddl-lists-button').text(el.text())
+                updateWebhookModelId(listId)
+                await loadCardsIntoFindModal(listId)
+                updateModelNamingConvention()
+            }
+            $(document).on('click', '#ddl-lists li a', (e) => {
+                handlListsChange(e)
+            })
+
+            // respond to card selection
             $(document).on('click', '#ddl-cards li a', (e) => {
                 const el = $(e.target)
-                const cardId = el.attr('card_id')
+                const cardId = el.attr('trello-id')
                 $('#ddl-cards-button').text(el.text())
-                updateModelNamingConvention()
                 updateWebhookModelId(cardId)
+                updateModelNamingConvention()
             })
 
             async function loadBoardsIntoFindModal() {
@@ -133,7 +139,7 @@
                 $('#ddl-boards').empty()
                 for (var i = 0; i < boards.length; i++) {
                     var board = boards[i]
-                    $('#ddl-boards').append('<li><a class="dropdown-item" href="#" board_id="'+ board.id +'">' + board.name + '</a></li>')
+                    $('#ddl-boards').append('<li><a class="dropdown-item" href="#" trello-id="'+ board.id +'">' + board.name + '</a></li>')
                 }
             }
             async function loadListsIntoFindModal(boardId) {
@@ -142,7 +148,7 @@
                 $('#ddl-lists').empty()
                 for (var i = 0; i < lists.length; i++) {
                     var list = lists[i]
-                    $('#ddl-lists').append('<li><a class="dropdown-item" href="#" list_id="' + list.id + '">' + list.name + '</a></li>')
+                    $('#ddl-lists').append('<li><a class="dropdown-item" href="#" trello-id="' + list.id + '">' + list.name + '</a></li>')
                 }
             }
             async function loadCardsIntoFindModal(listId) {
@@ -151,20 +157,44 @@
                 $('#ddl-cards').empty()
                 for (var i = 0; i < cards.length; i++) {
                     var card = cards[i]
-                    $('#ddl-cards').append('<li><a class="dropdown-item" href="#" card_id="' + card.id + '">' + card.name + '</a></li>')
+                    $('#ddl-cards').append('<li><a class="dropdown-item" href="#" trello-id="' + card.id + '">' + card.name + '</a></li>')
                 }
             }
             function updateWebhookModelId(modelId) {
                 $('#webhook-model-id').val(modelId)
             }
             function prepForModalName(txt) {
-                return txt.toLowerCase().replace(/\s/g, '-')
+                if (txt.toLowerCase().startsWith('select a')) {
+                    return ""
+                }
+                return txt.toLowerCase().replace(/[&\/\\#,+()$~%.'":*!?<>{}]/g, '').replace(/\s/g, '-').replace(/-+/g, '-')
             }
-            function updateModelNamingConvention(name) {
-                const board = $('#ddl-boards-button').text()
-                const list = $('#ddl-lists-button').text()
-                const card = $('#ddl-cards-button').text()
-                newText = prepForModalName(board + ':' + list + ':' + card)
+            function prepBoardForModalName(boardName) {
+                const n = prepForModalName(boardName)
+                if (n) {
+                    return n
+                }
+                return ""
+            }
+            function prepListForModalName(listName) {
+                const l = prepForModalName(listName)
+                if (l) {
+                    return ":" + l
+                }
+                return ""
+            }
+            function prepCardForModalName(cardName) {
+                const c = prepForModalName(cardName)
+                if (c) {
+                    return ":" + c
+                }
+                return ""
+            }
+            function updateModelNamingConvention() {
+                const board = prepBoardForModalName($('#ddl-boards-button').text())
+                const list = prepListForModalName($('#ddl-lists-button').text())
+                const card = prepCardForModalName($('#ddl-cards-button').text())
+                newText = board + list + card
                 $('#find-model-output').text(newText)
             }
             function updatePayload() {
