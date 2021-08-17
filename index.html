@@ -37,6 +37,21 @@
                 const hook = findWebhookById(hookId)
                 deleteWebhook(hook.id, parent)
             })
+            $('#existing-webhooks-container').on('click', '.edit-webhook', (e) => {
+                const parent = $(e.target).closest('div.webhook-payload-container')
+                const hookId = $(parent).attr('id')
+                const hook = findWebhookById(hookId)
+                $('#btn-update').attr('trello-id-to-update', hookId)
+                $('#webhook-description').val(hook.description)
+                $('#webhook-callbackURL').val(hook.callbackURL)
+                $('#webhook-model-id').val(hook.idModel)
+                $('#edit-mode-buttons').show()
+                $('#btn-submit').hide()
+                updatePayload()
+            })
+            $('#btn-cancel-edit').click(() => {
+                resetRegister()
+            })
             $('#btn-confirm-webhook-delete').click(() => {
                 const id = $('#delete-webhook-id').text()
                 $.ajax({
@@ -51,10 +66,6 @@
                     }
                 });
             })
-            function deleteWebhook(id) {
-                $('#delete-webhook-modal').modal('show')
-                $('#delete-webhook-id').text(id)
-            }
             $('#btn-get-webhooks').click(() => {
                 loadWebhooks()
             })
@@ -81,34 +92,12 @@
             $('#webhook-model-id').on('input', () => {
                 updatePayload()
             })
-            $('#submit').click(() => {
-                toggleSpinner('#submit')
-                paramObj = {
-                    token: globalToken,
-                    description: $('#webhook-description').val(),
-                    callbackURL: $('#webhook-callbackURL').val(),
-                    idModel: $('#webhook-model-id').val()
-                }
-                var url = getUrl('/webhooks')
-                console.log(url)
-                console.log(JSON.stringify(paramObj))
-                $.ajax({
-                    type: 'post',
-                    url: url,
-                    dataType: 'json',
-                    data: JSON.stringify(paramObj),
-                    contentType: 'application/json',
-                    success: (result) => {
-                        console.log('success')
-                    },
-                    error: (result) => {
-                        console.log(result)
-                        console.log('error')
-                    },
-                    complete: () => {
-                        toggleSpinner('#submit')
-                    }
-                })
+            $('#btn-submit').click(() => {
+                upsertWebhook('post', getUrl('/webhooks'))
+            })
+            $('#btn-update').click(() => {
+                const id = $('#btn-update').attr('trello-id-to-update')
+                upsertWebhook('put', getUrl('/webhooks/' + id))
             })
             $('#btn-find-model').click(() => {
                 loadBoardsIntoFindModal()
@@ -252,7 +241,7 @@
                             const containerStart = '<div id="' + hook.id + '" class="card bg-dark webhook-payload-container">'
                             const containerEnd = '</div>'
                             const btnRowHtml = '<div class="btn-group webhook-controls" role="group" aria-label="Webhook Commands">'
-                                + '<button type="button" class="btn btn-secondary"><span class="material-icons">edit</span></button>'
+                                + '<button type="button" class="btn btn-secondary edit-webhook"><span class="material-icons">edit</span></button>'
                                 + '<button type="button" class="btn btn-secondary test-webhook-url"><span class="material-icons">public</span></button>'
                                 + '<button type="button" class="btn btn-danger delete-webhook"><span class="material-icons">delete</span></button>'
                                 + '</div>'
@@ -352,6 +341,7 @@
                     callbackURL: (callUrl != "" ? callUrl : ""),
                     idModel: (modelId != "" ? modelId : "")
                 }
+                $('#webhook-callbackURL').trigger('input')
                 $('#webhook-payload').text(JSON.stringify(finalObj, null, 4))
             }
             function isPersonalAuthMethod() {
@@ -410,6 +400,49 @@
                 }
                 console.log('did not find ' + id)
             }
+            function deleteWebhook(id) {
+                $('#delete-webhook-modal').modal('show')
+                $('#delete-webhook-id').text(id)
+            }
+            function upsertWebhook(method, url) {
+                toggleSpinner('#btn-submit')
+                toggleSpinner('#btn-update')
+                paramObj = {
+                    token: globalToken,
+                    description: $('#webhook-description').val(),
+                    callbackURL: $('#webhook-callbackURL').val(),
+                    idModel: $('#webhook-model-id').val()
+                }
+                console.log(JSON.stringify(paramObj))
+                $.ajax({
+                    type: method,
+                    url: url,
+                    dataType: 'json',
+                    data: JSON.stringify(paramObj),
+                    contentType: 'application/json',
+                    success: (result) => {
+                        console.log('success')
+                    },
+                    error: (result) => {
+                        console.log(result)
+                        console.log('error')
+                    },
+                    complete: () => {
+                        toggleSpinner('#btn-submit')
+                        toggleSpinner('#btn-update')
+                        resetRegister()
+                        loadWebhooks()
+                    }
+                })
+            }
+            function resetRegister() {
+                $('#webhook-description').val('')
+                $('#webhook-callbackURL').val('')
+                $('#webhook-model-id').val('')
+                $('#btn-update').removeAttr('trello-id-to-update')
+                $('#edit-mode-buttons').hide()
+                $('#btn-submit').show()
+            }
         })
     </script>
     <style>
@@ -429,7 +462,7 @@
             margin-bottom: 10px;
         }
         
-        #submit {
+        #btn-submit {
             margin-top: 5px;
         }
 
@@ -442,7 +475,8 @@
 
         #authorized-section,
         #unauthorized-section,
-        #btn-deauth {
+        #btn-deauth,
+        #edit-mode-buttons {
             display: none;
         }
 
@@ -533,8 +567,13 @@
                                 </div>
                             </div>
 
-                            <button type="button" id="submit" class="btn btn-primary">Submit</button>
-                            <button type="button" id="update" class="btn btn-primary">Update</button>
+                            <div class="mb-3">
+                                <button type="button" id="btn-submit" class="btn btn-primary">Submit</button>
+                                <div id="edit-mode-buttons">
+                                    <button type="button" id="btn-update" class="btn btn-primary">Update</button>
+                                    <button type="button" id="btn-cancel-edit" class="btn btn-secondary">Cancel</button>
+                                </div>
+                            </div>
                         </form>
                     </div>
                 </div>
