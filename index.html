@@ -8,11 +8,166 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM " crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script>
-        $(document).ready(function () {
+        $(document).ready(() => {
             const api = "https://api.trello.com/1"
             var globalToken = ""
             var globalKey = ""
+            var webhookArray = []
             updatePayload()
+
+            $('#btn-load-auth').click(() => {
+                toggleSpinner('#btn-load-auth')
+                if (isPersonalAuthMethod()) {
+                    loadPersonalAuth()
+                } else {
+                    loadAppAuth()
+                }
+            })
+            $('#existing-webhooks-container').on('click', '.test-webhook-url', (e) => {
+                const parent = $(e.target).closest('div.webhook-payload-container')
+                const btn = $(parent).find('.test-webhook-url')
+                const icon = $(btn).find('span')
+                const hookId = $(parent).attr('id')
+                const hook = findWebhookById(hookId)
+                testCallbackUrl($(btn), $(icon), hook.callbackURL)
+            })
+            $('#existing-webhooks-container').on('click', '.delete-webhook', (e) => {
+                const parent = $(e.target).closest('div.webhook-payload-container')
+                const hookId = $(parent).attr('id')
+                const hook = findWebhookById(hookId)
+                deleteWebhook(hook.id, parent)
+            })
+            $('#btn-confirm-webhook-delete').click(() => {
+                const id = $('#delete-webhook-id').text()
+                $.ajax({
+                    type: 'delete',
+                    url: getUrl('/webhooks/' + id),
+                    success: (result) => {
+                        console.log('success')
+                        $('#' + id).remove()
+                    },
+                    error: (result) => {
+                        console.log('error')
+                    }
+                });
+            })
+            function deleteWebhook(id) {
+                $('#delete-webhook-modal').modal('show')
+                $('#delete-webhook-id').text(id)
+            }
+            $('#btn-get-webhooks').click(() => {
+                loadWebhooks()
+            })
+            $('#webhook-description').on('input', () => {
+                updatePayload()
+            })
+            $('#webhook-callbackURL').on('input', () => {
+                const callUrl = $('#webhook-callbackURL')
+                const btn = $('#btn-test-callbackurl')
+                const icon = $('#test-callbackurl-icon')
+                if (callUrl.val()) {
+                    btn.prop('disabled', false)
+                    btn.addClass('btn-primary')
+                    btn.removeClass('btn-secondary')
+                } else {
+                    btn.prop('disabled', true)
+                    btn.addClass('btn-secondary')
+                    btn.removeClass('btn-primary')
+                    btn.removeClass('btn-success')
+                    icon.text('public')
+                }
+                updatePayload()
+            })
+            $('#webhook-model-id').on('input', () => {
+                updatePayload()
+            })
+            $('#submit').click(() => {
+                toggleSpinner('#submit')
+                paramObj = {
+                    token: globalToken,
+                    description: $('#webhook-description').val(),
+                    callbackURL: $('#webhook-callbackURL').val(),
+                    idModel: $('#webhook-model-id').val()
+                }
+                var url = getUrl('/webhooks')
+                console.log(url)
+                console.log(JSON.stringify(paramObj))
+                $.ajax({
+                    type: 'post',
+                    url: url,
+                    dataType: 'json',
+                    data: JSON.stringify(paramObj),
+                    contentType: 'application/json',
+                    success: (result) => {
+                        console.log('success')
+                    },
+                    error: (result) => {
+                        console.log(result)
+                        console.log('error')
+                    },
+                    complete: () => {
+                        toggleSpinner('#submit')
+                    }
+                })
+            })
+            $('#btn-find-model').click(() => {
+                loadBoardsIntoFindModal()
+            })
+            $('#btn-test-callbackurl').click((e) => {
+                const callUrl = $('#webhook-callbackURL')
+                if (callUrl.val()) {
+                    testCallbackUrl($('#btn-test-callbackurl'), $('#test-callbackurl-icon'), callUrl.val())    
+                }
+            })
+            $('#btn-deauth').click(() => {
+                deauth()
+            })
+            $('#auth-method-option').click(() => {
+                deauth()
+                const deauthBtn = $('#btn-deauth')
+                const apiField = $('#apiKey')
+                const tokField = $('#apitoken')
+                const authFields = $('.auth-fields')
+                if (isPersonalAuthMethod()) {
+                    apiField.val('')
+                    tokField.val('')
+                    authFields.show()
+                    deauthBtn.hide()
+                } else {
+                    apiField.val('')
+                    tokField.val('')
+                    deauthBtn.show()
+                    authFields.hide()
+                }
+            })
+
+            // respond to board selection
+            $(document).on('click', '#ddl-boards li a', (e) => {
+                const el = $(e.target)
+                const boardId = el.attr('trello-id')
+                $('#ddl-boards-button').text(el.text())
+                updateWebhookModelId(boardId)
+                loadListsIntoFindModal(boardId)
+                updateModelNamingConvention()
+            })
+            // respond to list selection
+            $(document).on('click', '#ddl-lists li a', (e) => {
+                const el = $(e.target)
+                const listId = el.attr('trello-id')
+                $('#ddl-lists-button').text(el.text())
+                updateWebhookModelId(listId)
+                loadCardsIntoFindModal(listId)
+                updateModelNamingConvention()
+            })
+            // respond to card selection
+            $(document).on('click', '#ddl-cards li a', (e) => {
+                const el = $(e.target)
+                const cardId = el.attr('trello-id')
+                $('#ddl-cards-button').text(el.text())
+                updateWebhookModelId(cardId)
+                updateModelNamingConvention()
+            })
+
             function auth() {
                 return '?key=' + globalKey + '&token=' + globalToken
             }
@@ -20,10 +175,6 @@
                 return api + url + auth()
             }
             function testAuth() {
-                console.log('testing auth with key: ' + window.Trello.key())
-                console.log('testing auth with token: ' + window.Trello.token())
-                console.log('testing auth with key: ' + globalKey)
-                console.log('testing auth with token: ' + globalToken)
                 $.ajax({
                     type: 'get',
                     url: getUrl('/members/me'),
@@ -34,10 +185,13 @@
                     error: (result) => {
                         $('#unauthorized-section').show()
                         $('#authorized-section').hide()
+                    },
+                    complete: () => {
+                        toggleSpinner('#btn-load-auth')
                     }
                 })
             }
-            function loadClientLibrary(key,tok) {
+            function loadClientLibrary(key, tok) {
                 $.getScript('https://api.trello.com/1/client.js')
                     .done(() => {
                         globalKey = key
@@ -81,134 +235,46 @@
                         console.log('oops')
                     })
             }
-            $('#btn-load-auth').click(() => {
-                if (isPersonalAuthMethod()) {
-                    loadPersonalAuth()
-                } else {
-                    loadAppAuth()
-                }
-            })
-            $('#btn-get-webhooks').click(() => {
-                var url = api + '/tokens/' + globalToken + '/webhooks?key=' + globalKey + '&token=' + globalToken
-                console.log('webhooks url: ' + url)
+            function loadWebhooks() {
+                toggleSpinner('#btn-get-webhooks')
+                $('#existing-webhooks-container').empty()
+                const url = api + '/tokens/' + globalToken + '/webhooks?key=' + globalKey + '&token=' + globalToken
                 $.ajax({
                     type: 'get',
                     url: url,
                     dataType: 'json',
                     contentType: 'application/json',
                     success: (data) => {
-                        var webhooks = data
+                        const webhooks = data
+                        webhookArray = data
                         for (var i = 0; i < webhooks.length; i++) {
-                            var hook = webhooks[i]
-                            var html = '<div class="card bg-dark webhook-payload-container">'
+                            const hook = webhooks[i]
+                            const containerStart = '<div id="' + hook.id + '" class="card bg-dark webhook-payload-container">'
+                            const containerEnd = '</div>'
+                            const btnRowHtml = '<div class="btn-group webhook-controls" role="group" aria-label="Webhook Commands">'
+                                + '<button type="button" class="btn btn-secondary"><span class="material-icons">edit</span></button>'
+                                + '<button type="button" class="btn btn-secondary test-webhook-url"><span class="material-icons">public</span></button>'
+                                + '<button type="button" class="btn btn-danger delete-webhook"><span class="material-icons">delete</span></button>'
+                                + '</div>'
+                            const html = containerStart
+                                + btnRowHtml
                                 + '<div class="card-body">'
                                 + '<pre class="text-white">'
                                 + JSON.stringify(hook, null, 4)
                                 + '</pre>'
                                 + '</div>'
-                                + '</div>'
+                                + containerEnd
                             $('#existing-webhooks-container').append(html)
                         }
                     },
                     error: (result) => {
                         console.log('error')
-                    }
-                })
-            })
-            $('#webhook-description').on('input', () => {
-                updatePayload()
-            })
-            $('#webhook-callbackURL').on('input', () => {
-                updatePayload()
-            })
-            $('#webhook-model-id').on('input', () => {
-                updatePayload()
-            })
-            $('#submit').click(() => {
-                paramObj = {
-                    token: globalToken,
-                    description: $('#webhook-description').val(),
-                    callbackURL: $('#webhook-callbackURL').val(),
-                    idModel: $('#webhook-model-id').val()
-                }
-                var url = getUrl('/webhooks')
-                console.log(url)
-                console.log(JSON.stringify(paramObj))
-                $.ajax({
-                    type: 'post',
-                    url: url,
-                    dataType: 'json',
-                    data: JSON.stringify(paramObj),
-                    contentType: 'application/json',
-                    success: (result) => {
-                        console.log('success')
                     },
-                    error: (result) => {
-                        console.log(result)
-                        console.log('error')
-                    }
-                })
-            })
-
-            $('#btn-find-model').click(() => {
-                loadBoardsIntoFindModal()
-            })
-
-            $('#btn-test-callbackurl').click((e) => {
-                const el = $('#btn-test-callbackurl')
-                el.removeClass('btn-secondary')
-                $('#test-callbackurl-icon').text('refresh')
-                $('#test-callbackurl-icon').addClass('spin-element')
-                $.ajax({
-                    type: 'head',
-                    url: $('#webhook-callbackURL').val(),
-                    crossDomain: true,
                     complete: () => {
-                        $('#test-callbackurl-icon').removeClass('spin-element')
-                    },
-                    success: (result) => {
-                        console.log('success')
-                        el.addClass('btn-success')
-                        el.removeClass('btn-danger')
-                        $('#test-callbackurl-icon').text('check')
-                    },
-                    error: (result) => {
-                        console.log('error')
-                        el.addClass('btn-danger')
-                        $('#test-callbackurl-icon').text('error')
+                        toggleSpinner('#btn-get-webhooks')
                     }
                 })
-            })
-
-            // respond to board selection
-            $(document).on('click', '#ddl-boards li a', (e) => {
-                const el = $(e.target)
-                const boardId = el.attr('trello-id')
-                $('#ddl-boards-button').text(el.text())
-                updateWebhookModelId(boardId)
-                loadListsIntoFindModal(boardId)
-                updateModelNamingConvention()
-            })
-
-            // respond to list selection
-            $(document).on('click', '#ddl-lists li a', (e) => {
-                const el = $(e.target)
-                const listId = el.attr('trello-id')
-                $('#ddl-lists-button').text(el.text())
-                updateWebhookModelId(listId)
-                loadCardsIntoFindModal(listId)
-                updateModelNamingConvention()
-            })
-
-            // respond to card selection
-            $(document).on('click', '#ddl-cards li a', (e) => {
-                const el = $(e.target)
-                const cardId = el.attr('trello-id')
-                $('#ddl-cards-button').text(el.text())
-                updateWebhookModelId(cardId)
-                updateModelNamingConvention()
-            })
-
+            }
             function loadThing(url,ddl) {
                 $.ajax({
                     type: 'get',
@@ -302,27 +368,48 @@
                 $('#authorized-section').hide()
                 $('#existing-webhooks-container').empty()
             }
-            $('#btn-deauth').click(() => {
-                deauth()
-            })
-            $('#auth-method-option').click(() => {
-                deauth()
-                const deauthBtn = $('#btn-deauth')
-                const apiField = $('#apiKey')
-                const tokField = $('#apitoken')
-                const authFields = $('.auth-fields')
-                if (isPersonalAuthMethod()) {
-                    apiField.val('')
-                    tokField.val('')
-                    authFields.show()
-                    deauthBtn.hide()
+            function toggleSpinner(elid) {
+                const spinner = $(elid).find('span')
+                if (spinner.length) {
+                    $(elid + ' span').remove()
                 } else {
-                    apiField.val('')
-                    tokField.val('')
-                    deauthBtn.show()
-                    authFields.hide()
+                    $(elid).append('<span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>')
                 }
-            })
+            }
+            function testCallbackUrl(btn, icon, callUrl) {
+                btn.removeClass('btn-secondary')
+                btn.addClass('btn-light')
+                icon.text('refresh')
+                icon.addClass('spin-element')
+                $.ajax({
+                    type: 'head',
+                    url: callUrl,
+                    crossDomain: true,
+                    complete: () => {
+                        icon.removeClass('spin-element')
+                        btn.removeClass('btn-light')
+                    },
+                    success: (result) => {
+                        console.log('success')
+                        btn.addClass('btn-success')
+                        btn.removeClass('btn-danger')
+                        icon.text('check')
+                    },
+                    error: (result) => {
+                        console.log('error')
+                        btn.addClass('btn-danger')
+                        icon.text('error')
+                    }
+                })
+            }
+            function findWebhookById(id) {
+                const found = webhookArray.find(x => x.id === id)
+                if (found) {
+                    console.log(found)
+                    return found
+                }
+                console.log('did not find ' + id)
+            }
         })
     </script>
     <style>
@@ -332,6 +419,10 @@
 
         pre {
             margin-bottom: 0;
+        }
+
+        #new-webhook-payload-container {
+            height: 100%;
         }
 
         .webhook-payload-container {
@@ -361,7 +452,6 @@
             animation-iteration-count: infinite;
             animation-timing-function: linear;
         }
-
         @keyframes spin {
             from {
                 transform: rotate(0deg);
@@ -370,6 +460,11 @@
             to {
                 transform: rotate(360deg);
             }
+        }
+
+        .webhook-controls {
+            position: absolute;
+            right: 0;
         }
     </style>
 </head>
@@ -399,10 +494,12 @@
             <input type="password" class="form-control" id="apitoken" placeholder="API Token" name="apitoken" value="">
         </div>
         <div class="col-3">
-            <button type="button" class="btn btn-primary" id="btn-load-auth">Authorize</button>
+            <button type="button" class="btn btn-primary" id="btn-load-auth">
+                Authorize
+            </button>
             <button type="button" class="btn btn-danger" id="btn-deauth">Deauthorize</button>
         </div>
-        
+
     </div>
     <div id="authorized-section">
         <div class="row">
@@ -424,7 +521,7 @@
                                 <label for="callbackURL">Callback URL:</label>
                                 <div class="input-group mb-3">
                                     <input type="text" id="webhook-callbackURL" class="form-control" name="callbackURL" autocomplete="off" />
-                                    <button class="btn btn-secondary" type="button" id="btn-test-callbackurl"><span id="test-callbackurl-icon" class="material-icons">public</span></button>
+                                    <button class="btn btn-secondary" type="button" id="btn-test-callbackurl" disabled><span id="test-callbackurl-icon" class="material-icons">public</span></button>
                                 </div>
                             </div>
 
@@ -436,13 +533,14 @@
                                 </div>
                             </div>
 
-                            <button type="button" id="submit" class="btn btn-primary"><span class="spinner"></span>Submit</button>
+                            <button type="button" id="submit" class="btn btn-primary">Submit</button>
+                            <button type="button" id="update" class="btn btn-primary">Update</button>
                         </form>
                     </div>
                 </div>
             </div>
             <div class="col-md-12 col-lg-7">
-                <div class="card bg-dark">
+                <div id="new-webhook-payload-container" class="card bg-dark">
                     <div class="card-body">
                         <pre id="webhook-payload" class="text-white"></pre>
                     </div>
@@ -482,7 +580,7 @@
                         <div class="col">
                             <h5>Boards</h5>
                             <div class="dropdown">
-                                <button id="ddl-boards-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Board</button>
+                                <button id="ddl-boards-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Board</button>
                                 <ul id="ddl-boards" class="dropdown-menu" aria-labelledby="ddl-boards-button"></ul>
                             </div>
                         </div>
@@ -491,7 +589,7 @@
                         <div class="col">
                             <h5>Lists</h5>
                             <div class="dropdown">
-                                <button id="ddl-lists-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a List</button>
+                                <button id="ddl-lists-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a List</button>
                                 <ul id="ddl-lists" class="dropdown-menu" aria-labelledby="ddl-lists-button"></ul>
                             </div>
                         </div>
@@ -500,7 +598,7 @@
                         <div class="col">
                             <h5>Cards</h5>
                             <div class="dropdown">
-                                <button id="ddl-cards-button" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Card</button>
+                                <button id="ddl-cards-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Card</button>
                                 <ul id="ddl-cards" class="dropdown-menu" aria-labelledby="ddl-cards-button"></ul>
                             </div>
                         </div>
@@ -517,7 +615,26 @@
             </div>
         </div>
     </div>
-
+    <div id="delete-webhook-modal" class="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Delete Webhook</h3>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <p>Are you sure you want to delete this webhook?</p>
+                        <pre id="delete-webhook-id"></pre>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button id="btn-confirm-webhook-delete" type="button" class="btn btn-danger" data-bs-dismiss="modal">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
