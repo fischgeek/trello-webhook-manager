@@ -9,70 +9,112 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script>
         $(document).ready(function () {
+            const api = "https://api.trello.com/1"
+            var globalToken = ""
+            var globalKey = ""
             updatePayload()
-
+            function auth() {
+                return '?key=' + globalKey + '&token=' + globalToken
+            }
+            function getUrl(url) {
+                return api + url + auth()
+            }
             function testAuth() {
-                var tok = $('#apitoken').val()
-                var url = '/members/me?token=' + tok
-                window.Trello.get(url, (r) => {
-                    $('#unauthorized-section').hide()
-                    $('#authorized-section').show()
-                }, (err) => {
-                    $('#unauthorized-section').show()
-                    $('#authorized-section').hide()
-                })
-            }
-            function testCall() {
+                console.log('testing auth with key: ' + window.Trello.key())
+                console.log('testing auth with token: ' + window.Trello.token())
+                console.log('testing auth with key: ' + globalKey)
+                console.log('testing auth with token: ' + globalToken)
                 $.ajax({
-                    url: 'https://api.trello.com/1/client.js?key=' + $('#apiKey').val(),
-                    dataType: 'script',
-                    success: testAuth
+                    type: 'get',
+                    url: getUrl('/members/me'),
+                    success: (result) => {
+                        $('#unauthorized-section').hide()
+                        $('#authorized-section').show()
+                    },
+                    error: (result) => {
+                        $('#unauthorized-section').show()
+                        $('#authorized-section').hide()
+                    }
                 })
             }
-            $('#load-auth').click(() => {
-                testCall()
-            })
-
-            $('#mybutton').click(() => {
-                var myList = '5b92743eee08f83205eb7a5f'
-
-                var creationSuccess = function(data) {
-                    console.log('Card created successfully.')
-                    console.log(JSON.stringify(data, null, 2))
+            function loadClientLibrary(key,tok) {
+                $.getScript('https://api.trello.com/1/client.js')
+                    .done(() => {
+                        globalKey = key
+                        globalToken = tok
+                        testAuth()
+                    })
+                    .fail(() => {
+                        console.log('oops')
+                    })
+            }
+            function loadPersonalAuth() {
+                loadClientLibrary($('#apiKey').val(), $('#apitoken').val())
+            }
+            function loadAppAuth() {
+                var authenticationSuccess = function () {
+                    console.log('Successful authentication')
+                    globalKey = window.Trello.key()
+                    globalToken = window.Trello.token()
+                    testAuth()
                 }
-
-                var newCard = {
-                    name: 'New Test Card',
-                    desc: 'This is the description of our new card.',
-                    idList: myList,
-                    pos: 'top'
+                var authenticationFailure = function () {
+                    console.log('Failed authentication')
+                    testAuth()
                 }
-
-                window.Trello.post('/cards/', newCard, creationSuccess)
+                $.getScript('https://api.trello.com/1/client.js?key=96f43e70a38cbb59313af81e232df069')
+                    .done(() => {
+                        window.Trello.authorize({
+                            type: 'popup',
+                            name: 'Trello Webhook Manager',
+                            scope: {
+                                read: 'true',
+                                write: 'true'
+                            },
+                            return_url: 'https://trellowebhooks.devtechfm.com',
+                            expiration: 'never',
+                            success: authenticationSuccess,
+                            error: authenticationFailure
+                        })
+                    })
+                    .fail(() => {
+                        console.log('oops')
+                    })
+            }
+            $('#btn-load-auth').click(() => {
+                if (isPersonalAuthMethod()) {
+                    loadPersonalAuth()
+                } else {
+                    loadAppAuth()
+                }
             })
-
             $('#btn-get-webhooks').click(() => {
-                var fetchSuccess = function(data) {
-                    var webhooks = data
-                    for (var i = 0; i < webhooks.length; i++) {
-                        var hook = webhooks[i]
-                        var html = '<div class="card bg-dark webhook-payload-container">'
-                            + '<div class="card-body">'
-                            + '<pre class="text-white">'
-                            + JSON.stringify(hook, null, 4)
-                            + '</pre>'
-                            + '</div>'
-                            + '</div>'
-                        $('#body').append(html)
+                var url = api + '/tokens/' + globalToken + '/webhooks?key=' + globalKey + '&token=' + globalToken
+                console.log('webhooks url: ' + url)
+                $.ajax({
+                    type: 'get',
+                    url: url,
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    success: (data) => {
+                        var webhooks = data
+                        for (var i = 0; i < webhooks.length; i++) {
+                            var hook = webhooks[i]
+                            var html = '<div class="card bg-dark webhook-payload-container">'
+                                + '<div class="card-body">'
+                                + '<pre class="text-white">'
+                                + JSON.stringify(hook, null, 4)
+                                + '</pre>'
+                                + '</div>'
+                                + '</div>'
+                            $('#existing-webhooks-container').append(html)
+                        }
+                    },
+                    error: (result) => {
+                        console.log('error')
                     }
-                }
-
-                var tok = $('#apitoken').val()
-                var url = '/tokens/' + tok + '/webhooks/'
-                console.log(url)
-                var webhooks = window.Trello.get(url, fetchSuccess)
+                })
             })
-
             $('#webhook-description').on('input', () => {
                 updatePayload()
             })
@@ -83,22 +125,29 @@
                 updatePayload()
             })
             $('#submit').click(() => {
-                var hookSuccess = function(data) {
-                    console.log('hook success')
-                    console.log(data)
+                paramObj = {
+                    token: globalToken,
+                    description: $('#webhook-description').val(),
+                    callbackURL: $('#webhook-callbackURL').val(),
+                    idModel: $('#webhook-model-id').val()
                 }
-                var hookFail = function(data) {
-                    console.log('hook fail')
-                    console.log(data)
-                }
-                var tok = $('#apitoken').val()
-                var paramObj = {
-                    token: tok,
-                    description: $('#description').val(),
-                    callbackURL: $('#callbackURL').val(),
-                    idModel: $('#idModel').val()
-                }
-                window.Trello.post('/webhooks/', paramObj, hookSuccess, hookFail)
+                var url = getUrl('/webhooks')
+                console.log(url)
+                console.log(JSON.stringify(paramObj))
+                $.ajax({
+                    type: 'post',
+                    url: url,
+                    dataType: 'json',
+                    data: JSON.stringify(paramObj),
+                    contentType: 'application/json',
+                    success: (result) => {
+                        console.log('success')
+                    },
+                    error: (result) => {
+                        console.log(result)
+                        console.log('error')
+                    }
+                })
             })
 
             $('#btn-find-model').click(() => {
@@ -132,29 +181,23 @@
             })
 
             // respond to board selection
-            async function handleBoardsChange(e) {
+            $(document).on('click', '#ddl-boards li a', (e) => {
                 const el = $(e.target)
                 const boardId = el.attr('trello-id')
                 $('#ddl-boards-button').text(el.text())
                 updateWebhookModelId(boardId)
-                await loadListsIntoFindModal(boardId)
+                loadListsIntoFindModal(boardId)
                 updateModelNamingConvention()
-            }
-            $(document).on('click', '#ddl-boards li a', (e) => {
-                handleBoardsChange(e)
             })
 
             // respond to list selection
-            async function handlListsChange(e) {
+            $(document).on('click', '#ddl-lists li a', (e) => {
                 const el = $(e.target)
                 const listId = el.attr('trello-id')
                 $('#ddl-lists-button').text(el.text())
                 updateWebhookModelId(listId)
-                await loadCardsIntoFindModal(listId)
+                loadCardsIntoFindModal(listId)
                 updateModelNamingConvention()
-            }
-            $(document).on('click', '#ddl-lists li a', (e) => {
-                handlListsChange(e)
             })
 
             // respond to card selection
@@ -166,32 +209,35 @@
                 updateModelNamingConvention()
             })
 
-            async function loadBoardsIntoFindModal() {
-                var boards = await getBoards()
-                $('#find-model-modal').modal('show')
-                $('#ddl-boards').empty()
-                for (var i = 0; i < boards.length; i++) {
-                    var board = boards[i]
-                    $('#ddl-boards').append('<li><a class="dropdown-item" href="#" trello-id="'+ board.id +'">' + board.name + '</a></li>')
-                }
+            function loadThing(url,ddl) {
+                $.ajax({
+                    type: 'get',
+                    url: url,
+                    dataType: 'json',
+                    contentType: 'application/json',
+                    success: (things) => {
+                        $('#find-model-modal').modal('show')
+                        $(ddl).empty()
+                        for (var i = 0; i < things.length; i++) {
+                            var thing = things[i]
+                            $(ddl).append('<li><a class="dropdown-item" href="#" trello-id="' + thing.id + '">' + thing.name + '</a></li>')
+                        }
+                    },
+                    error: (result) => {
+                        console.log('error')
+                    }
+                })
             }
-            async function loadListsIntoFindModal(boardId) {
-                var lists = await getLists(boardId)
+            function loadBoardsIntoFindModal() {
+                loadThing(getUrl('/members/me/boards') + '&fields=name&filter=open', '#ddl-boards')
+            }
+            function loadListsIntoFindModal(boardId) {
+                loadThing(getUrl('/boards/' + boardId + '/lists') + '&fields=name', '#ddl-lists')
                 $('#ddl-lists-button').text('Select a List')
-                $('#ddl-lists').empty()
-                for (var i = 0; i < lists.length; i++) {
-                    var list = lists[i]
-                    $('#ddl-lists').append('<li><a class="dropdown-item" href="#" trello-id="' + list.id + '">' + list.name + '</a></li>')
-                }
             }
-            async function loadCardsIntoFindModal(listId) {
-                const cards = await getCards(listId)
+            function loadCardsIntoFindModal(listId) {
+                loadThing(getUrl('/lists/' + listId + '/cards') + '&fields=name', '#ddl-cards')
                 $('#ddl-cards-button').text('Select a Card')
-                $('#ddl-cards').empty()
-                for (var i = 0; i < cards.length; i++) {
-                    var card = cards[i]
-                    $('#ddl-cards').append('<li><a class="dropdown-item" href="#" trello-id="' + card.id + '">' + card.name + '</a></li>')
-                }
             }
             function updateWebhookModelId(modelId) {
                 $('#webhook-model-id').val(modelId)
@@ -236,27 +282,47 @@
                 var callUrl = $('#webhook-callbackURL').val()
                 var modelId = $('#webhook-model-id').val()
                 var finalObj = {
-                    description: "",
-                    callbackURL: "",
-                    idModel: ""
+                    description: (desc != "" ? desc : ""),
+                    callbackURL: (callUrl != "" ? callUrl : ""),
+                    idModel: (modelId != "" ? modelId : "")
                 }
                 $('#webhook-payload').text(JSON.stringify(finalObj, null, 4))
             }
-            function getBoards() {
-                var tok = $('#apitoken').val()
-                var url = '/members/me/boards/?filter=open&fields=name&token=' + tok
-                return window.Trello.get(url, function (data) {return data})
+            function isPersonalAuthMethod() {
+                const auth = $('#auth-method-option')
+                const isPersonal = auth.prop('checked')
+                return isPersonal
             }
-            function getLists(boardId) {
-                var tok = $('#apitoken').val()
-                var url = '/boards/' + boardId + '/lists?fields=name&token=' + tok
-                return window.Trello.get(url, function (data) { return data })
+            function deauth() {
+                if (window.Trello) {
+                    window.Trello.deauthorize()
+                }
+                globalKey = globalToken = ""
+                $('#unauthorized-section').hide()
+                $('#authorized-section').hide()
+                $('#existing-webhooks-container').empty()
             }
-            function getCards(listId) {
-                var tok = $('#apitoken').val()
-                var url = '/lists/' + listId + '/cards?fields=name&token=' + tok
-                return window.Trello.get(url, function (data) { return data })
-            }
+            $('#btn-deauth').click(() => {
+                deauth()
+            })
+            $('#auth-method-option').click(() => {
+                deauth()
+                const deauthBtn = $('#btn-deauth')
+                const apiField = $('#apiKey')
+                const tokField = $('#apitoken')
+                const authFields = $('.auth-fields')
+                if (isPersonalAuthMethod()) {
+                    apiField.val('')
+                    tokField.val('')
+                    authFields.show()
+                    deauthBtn.hide()
+                } else {
+                    apiField.val('')
+                    tokField.val('')
+                    deauthBtn.show()
+                    authFields.hide()
+                }
+            })
         })
     </script>
     <style>
@@ -284,7 +350,8 @@
         }
 
         #authorized-section,
-        #unauthorized-section {
+        #unauthorized-section,
+        #btn-deauth {
             display: none;
         }
 
@@ -314,20 +381,28 @@
         </div>
     </div>
     <div class="row">
-        <div class="col">
+        <div class="col-2">
             <h3>Authorization</h3>
+        </div>
+        <div class="col">
+            <div class="form-check form-switch" style="padding-top: 8px">
+                <input class="form-check-input" type="checkbox" id="auth-method-option" checked>
+                <label class="form-check-label" id="lbl-auth-method-option" for="auth-method-option">Personal Authorization</label>
+            </div>
         </div>
     </div>
     <div class="row">
-        <div class="col-3">
+        <div class="col-3 auth-fields">
             <input type="password" class="form-control" id="apiKey" placeholder="API Key" name="apikey" value="">
         </div>
-        <div class="col-3">
+        <div class="col-3 auth-fields">
             <input type="password" class="form-control" id="apitoken" placeholder="API Token" name="apitoken" value="">
         </div>
         <div class="col-3">
-            <button type="button" class="btn btn-primary" id="load-auth">Authorize</button>
+            <button type="button" class="btn btn-primary" id="btn-load-auth">Authorize</button>
+            <button type="button" class="btn btn-danger" id="btn-deauth">Deauthorize</button>
         </div>
+        
     </div>
     <div id="authorized-section">
         <div class="row">
@@ -361,10 +436,7 @@
                                 </div>
                             </div>
 
-                            <button id="submit" class="btn btn-primary">
-                                <span class="spinner"></span>
-                                Submit
-                            </button>
+                            <button type="button" id="submit" class="btn btn-primary"><span class="spinner"></span>Submit</button>
                         </form>
                     </div>
                 </div>
@@ -386,6 +458,9 @@
             <div class="col-4">
                 <button type="button" id="btn-get-webhooks" class="btn btn-secondary">Get Webhooks</button>
             </div>
+        </div>
+        <div class="row">
+            <div id="existing-webhooks-container" class="col"></div>
         </div>
     </div>
     <div id="unauthorized-section">
