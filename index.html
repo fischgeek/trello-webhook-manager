@@ -8,27 +8,32 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM " crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <script>
-        $(document).ready(function() {
-            $('#load-auth').click(function() {
-                function reloadSuccess(msg) {
-                    console.log('reload success')
-                    console.log(msg)
-                }
+        $(document).ready(function () {
+            updatePayload()
 
-                function reloadFailed(msg) {
-                    console.log('reload failed')
-                    console.log(msg)
-                }
-
-                $.ajax({
-                    url: "https://api.trello.com/1/client.js?key=" + $('#apiKey').val(),
-                    dataType: "script",
-                    success: reloadSuccess,
-                    fail: reloadFailed
+            function testAuth() {
+                var tok = $('#apitoken').val()
+                var url = '/members/me?token=' + tok
+                window.Trello.get(url, (r) => {
+                    $('#unauthorized-section').hide()
+                    $('#authorized-section').show()
+                }, (err) => {
+                    $('#unauthorized-section').show()
+                    $('#authorized-section').hide()
                 })
+            }
+            function testCall() {
+                $.ajax({
+                    url: 'https://api.trello.com/1/client.js?key=' + $('#apiKey').val(),
+                    dataType: 'script',
+                    success: testAuth
+                })
+            }
+            $('#load-auth').click(() => {
+                testCall()
             })
 
-            $('#mybutton').click(function() {
+            $('#mybutton').click(() => {
                 var myList = '5b92743eee08f83205eb7a5f'
 
                 var creationSuccess = function(data) {
@@ -50,13 +55,15 @@
                 var fetchSuccess = function(data) {
                     var webhooks = data
                     for (var i = 0; i < webhooks.length; i++) {
-                        console.log(webhooks[i].id)
                         var hook = webhooks[i]
-                        console.log(hook)
-                        var startPre = "<pre>"
-                        var hookInfo = JSON.stringify(hook, null, 4)
-                        var endPre = "</pre>"
-                        $('#body').append(startPre + hookInfo + endPre)
+                        var html = '<div class="card bg-dark webhook-payload-container">'
+                            + '<div class="card-body">'
+                            + '<pre class="text-white">'
+                            + JSON.stringify(hook, null, 4)
+                            + '</pre>'
+                            + '</div>'
+                            + '</div>'
+                        $('#body').append(html)
                     }
                 }
 
@@ -66,16 +73,16 @@
                 var webhooks = window.Trello.get(url, fetchSuccess)
             })
 
-            $('#webhook-description').on('input', function() {
+            $('#webhook-description').on('input', () => {
                 updatePayload()
             })
-            $('#webhook-callbackURL').on('input', function() {
+            $('#webhook-callbackURL').on('input', () => {
                 updatePayload()
             })
-            $('#webhook-model-id').on('input', function() {
+            $('#webhook-model-id').on('input', () => {
                 updatePayload()
             })
-            $('#submit').click(function() {
+            $('#submit').click(() => {
                 var hookSuccess = function(data) {
                     console.log('hook success')
                     console.log(data)
@@ -96,6 +103,32 @@
 
             $('#btn-find-model').click(() => {
                 loadBoardsIntoFindModal()
+            })
+
+            $('#btn-test-callbackurl').click((e) => {
+                const el = $('#btn-test-callbackurl')
+                el.removeClass('btn-secondary')
+                $('#test-callbackurl-icon').text('refresh')
+                $('#test-callbackurl-icon').addClass('spin-element')
+                $.ajax({
+                    type: 'head',
+                    url: $('#webhook-callbackURL').val(),
+                    crossDomain: true,
+                    complete: () => {
+                        $('#test-callbackurl-icon').removeClass('spin-element')
+                    },
+                    success: (result) => {
+                        console.log('success')
+                        el.addClass('btn-success')
+                        el.removeClass('btn-danger')
+                        $('#test-callbackurl-icon').text('check')
+                    },
+                    error: (result) => {
+                        console.log('error')
+                        el.addClass('btn-danger')
+                        $('#test-callbackurl-icon').text('error')
+                    }
+                })
             })
 
             // respond to board selection
@@ -203,9 +236,9 @@
                 var callUrl = $('#webhook-callbackURL').val()
                 var modelId = $('#webhook-model-id').val()
                 var finalObj = {
-                    description: desc,
-                    callbackURL: callUrl,
-                    idModel: modelId
+                    description: "",
+                    callbackURL: "",
+                    idModel: ""
                 }
                 $('#webhook-payload').text(JSON.stringify(finalObj, null, 4))
             }
@@ -230,6 +263,14 @@
         .row {
             margin-bottom: 20px;
         }
+
+        pre {
+            margin-bottom: 0;
+        }
+
+        .webhook-payload-container {
+            margin-bottom: 10px;
+        }
         
         #submit {
             margin-top: 5px;
@@ -240,6 +281,28 @@
             line-height: 0 !important;
             position: relative;
             top: -1px;
+        }
+
+        #authorized-section,
+        #unauthorized-section {
+            display: none;
+        }
+
+        .spin-element {
+            animation-name: spin;
+            animation-duration: 5000ms;
+            animation-iteration-count: infinite;
+            animation-timing-function: linear;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
@@ -252,7 +315,7 @@
     </div>
     <div class="row">
         <div class="col">
-            <h2>Authorization</h2>
+            <h3>Authorization</h3>
         </div>
     </div>
     <div class="row">
@@ -266,65 +329,77 @@
             <button type="button" class="btn btn-primary" id="load-auth">Authorize</button>
         </div>
     </div>
-    <div class="row">
-        <div class="col">
-            <h3>Register a New Webhook</h3>
+    <div id="authorized-section">
+        <div class="row">
+            <div class="col">
+                <h3>Register a New Webhook</h3>
+            </div>
         </div>
-    </div>
-    <div class="row">
-        <div class="col-md-12 col-lg-5 bottomspace-medium">
-            <div class="card">
-                <div class="card-body">
-                    <form>
-                        <div class="mb-3">
-                            <label for="description">Description:</label>
-                            <input type="text" id="webhook-description" class="form-control w-100" name="description" autocomplete="off" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="callbackURL">Callback URL:</label>
-                            <input type="text" id="webhook-callbackURL" class="form-control" name="callbackURL" autocomplete="off" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="idModel">ID of the Model:</label>
-                            <div class="input-group mb-3">
-                                <input id="webhook-model-id" type="text" class="form-control">
-                                <button class="btn btn-secondary" type="button" id="btn-find-model"><span class="material-icons">search</span></button>
+        <div class="row">
+            <div class="col-md-12 col-lg-5 bottomspace-medium">
+                <div class="card">
+                    <div class="card-body">
+                        <form>
+                            <div class="mb-3">
+                                <label for="description">Description:</label>
+                                <input type="text" id="webhook-description" class="form-control w-100" name="description" autocomplete="off" />
                             </div>
-                        </div>
 
-                        <button id="submit" class="btn btn-primary">
-                            <span class="spinner"></span>
-                            Submit
-                        </button>
-                    </form>
+                            <div class="mb-3">
+                                <label for="callbackURL">Callback URL:</label>
+                                <div class="input-group mb-3">
+                                    <input type="text" id="webhook-callbackURL" class="form-control" name="callbackURL" autocomplete="off" />
+                                    <button class="btn btn-secondary" type="button" id="btn-test-callbackurl"><span id="test-callbackurl-icon" class="material-icons">public</span></button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="idModel">ID of the Model:</label>
+                                <div class="input-group mb-3">
+                                    <input id="webhook-model-id" type="text" class="form-control">
+                                    <button class="btn btn-secondary" type="button" id="btn-find-model"><span class="material-icons">search</span></button>
+                                </div>
+                            </div>
+
+                            <button id="submit" class="btn btn-primary">
+                                <span class="spinner"></span>
+                                Submit
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 col-lg-7">
+                <div class="card bg-dark">
+                    <div class="card-body">
+                        <pre id="webhook-payload" class="text-white"></pre>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-12 col-lg-7">
-            <div class="card bg-dark">
-                <div class="card-body">
-                    <pre id="webhook-payload" class="text-white"></pre>
-                </div>
+        <div class="row">
+            <div class="col">
+                <h3>Your Webhooks</h3>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-4">
+                <button type="button" id="btn-get-webhooks" class="btn btn-secondary">Get Webhooks</button>
             </div>
         </div>
     </div>
-    <div class="row">
-        <div class="col">
-            <h3>Your Webhooks</h3>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-4">
-            <button type="button" id="btn-get-webhooks" class="btn btn-secondary">Get Webhooks</button>
+    <div id="unauthorized-section">
+        <div class="row">
+            <div class="col">
+                <p class="text-danger">Invalid API Key or Token.</p>
+            </div>
         </div>
     </div>
     <div id="find-model-modal" class="modal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h3 class="modal-title">Locate Model</h3>
+                    <h3 class="modal-title">Model Browser</h3>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -362,8 +437,7 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary">Done</button>
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
                 </div>
             </div>
         </div>
