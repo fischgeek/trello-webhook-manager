@@ -105,7 +105,7 @@
             $('#btn-test-callbackurl').click((e) => {
                 const callUrl = $('#webhook-callbackURL')
                 if (callUrl.val()) {
-                    testCallbackUrl($('#btn-test-callbackurl'), $('#test-callbackurl-icon'), callUrl.val())    
+                    testCallbackUrl($('#btn-test-callbackurl'), $('#test-callbackurl-icon'), callUrl.val())
                 }
             })
             $('#btn-deauth').click(() => {
@@ -264,7 +264,7 @@
                     }
                 })
             }
-            function loadThing(url,ddl) {
+            function loadThing(url, ddl) {
                 $.ajax({
                     type: 'get',
                     url: url,
@@ -341,7 +341,9 @@
                     callbackURL: (callUrl != "" ? callUrl : ""),
                     idModel: (modelId != "" ? modelId : "")
                 }
-                $('#webhook-callbackURL').trigger('input')
+                if (callUrl) {
+                    $('#webhook-callbackURL').trigger('input')
+                }
                 $('#webhook-payload').text(JSON.stringify(finalObj, null, 4))
             }
             function isPersonalAuthMethod() {
@@ -461,7 +463,7 @@
         .webhook-payload-container {
             margin-bottom: 10px;
         }
-        
+
         #btn-submit {
             margin-top: 5px;
         }
@@ -486,6 +488,7 @@
             animation-iteration-count: infinite;
             animation-timing-function: linear;
         }
+
         @keyframes spin {
             from {
                 transform: rotate(0deg);
