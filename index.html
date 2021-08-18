@@ -407,6 +407,19 @@
                 $('#delete-webhook-modal').modal('show')
                 $('#delete-webhook-id').text(id)
             }
+            function clearAlert() {
+                const alert = $('#new-webhook-response-alert')
+                alert.removeClass('alert-success')
+                alert.removeClass('alert-danger')
+                alert.hide()
+            }
+            function updateAlert(type, text) {
+                const alert = $('#new-webhook-response-alert')
+                alert.show()
+                alert.text(text)
+                alert.addClass('alert-' + type)
+                alert.append('<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="float:right"></button>')
+            }
             function upsertWebhook(method, url) {
                 toggleSpinner('#btn-submit')
                 toggleSpinner('#btn-update')
@@ -425,10 +438,12 @@
                     contentType: 'application/json',
                     success: (result) => {
                         console.log('success')
+                        updateAlert('success', 'Webhook '+ (method == "post" ? "created" : "updated") +' successfully!')
                     },
                     error: (result) => {
                         console.log(result)
                         console.log('error')
+                        updateAlert('danger', result.responseText)
                     },
                     complete: () => {
                         toggleSpinner('#btn-submit')
@@ -463,7 +478,7 @@
         }
 
         #new-webhook-payload-container {
-            height: 100%;
+            /*height: 100%;*/
         }
 
         .webhook-payload-container {
@@ -486,6 +501,14 @@
         #btn-deauth,
         #edit-mode-buttons {
             display: none;
+        }
+
+        #new-webhook-response-container {
+            margin-top: 5px;
+        }
+
+        #new-webhook-response-alert {
+            display:none;
         }
 
         .spin-element {
@@ -591,6 +614,11 @@
                 <div id="new-webhook-payload-container" class="card bg-dark">
                     <div class="card-body">
                         <pre id="webhook-payload" class="text-white"></pre>
+                    </div>
+                </div>
+                <div id="new-webhook-response-container">
+                    <div id="new-webhook-response-alert" class="alert" role="alert">
+                        A simple success alert—check it out!
                     </div>
                 </div>
             </div>
