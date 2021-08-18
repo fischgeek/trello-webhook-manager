@@ -49,6 +49,7 @@
                 $('#edit-mode-buttons').show()
                 $('#btn-submit').hide()
                 updatePayload()
+                $('html,body').animate({ scrollTop: 0 }, 'slow');
             })
             $('#btn-cancel-edit').click(() => {
                 resetRegister()
