@@ -75,20 +75,20 @@
                 updatePayload()
             })
             $('#webhook-callbackURL').on('input', () => {
-                //const callUrl = $('#webhook-callbackURL')
-                //const btn = $('#btn-test-callbackurl')
-                //const icon = $('#test-callbackurl-icon')
-                //if (callUrl.val()) {
-                    //btn.prop('disabled', false)
-                    //btn.addClass('btn-primary')
-                    //btn.removeClass('btn-secondary')
-                //} else {
-                    //btn.prop('disabled', true)
-                    //btn.addClass('btn-secondary')
-                    //btn.removeClass('btn-primary')
-                    //btn.removeClass('btn-success')
-                    //icon.text('public')
-                //}
+                const callUrl = $('#webhook-callbackURL')
+                const btn = $('#btn-test-callbackurl')
+                const icon = $('#test-callbackurl-icon')
+                if (callUrl.val()) {
+                    btn.prop('disabled', false)
+                    btn.addClass('btn-primary')
+                    btn.removeClass('btn-secondary')
+                } else {
+                    btn.prop('disabled', true)
+                    btn.addClass('btn-secondary')
+                    btn.removeClass('btn-primary')
+                    btn.removeClass('btn-success')
+                    icon.text('public')
+                }
                 updatePayload()
             })
             $('#webhook-model-id').on('input', () => {
@@ -107,7 +107,7 @@
             $('#btn-test-callbackurl').click((e) => {
                 const callUrl = $('#webhook-callbackURL')
                 if (callUrl.val()) {
-                    //testCallbackUrl($('#btn-test-callbackurl'), $('#test-callbackurl-icon'), callUrl.val())
+                    testCallbackUrl($('#btn-test-callbackurl'), $('#test-callbackurl-icon'), callUrl.val())
                 }
             })
             $('#btn-deauth').click(() => {
@@ -130,6 +130,9 @@
                     deauthBtn.show()
                     authFields.hide()
                 }
+            })
+            $('#close-alert').click(() => {
+                clearAlert()
             })
 
             // respond to board selection
@@ -244,7 +247,7 @@
                             const containerEnd = '</div>'
                             const btnRowHtml = '<div class="btn-group webhook-controls" role="group" aria-label="Webhook Commands">'
                                 + '<button type="button" class="btn btn-secondary edit-webhook"><span class="material-icons">edit</span></button>'
-                                + '<button type="button" class="btn btn-secondary test-webhook-url" disabled><span class="material-icons">public</span></button>'
+                                //+ '<button type="button" class="btn btn-secondary test-webhook-url" disabled><span class="material-icons">public</span></button>'
                                 + '<button type="button" class="btn btn-danger delete-webhook"><span class="material-icons">delete</span></button>'
                                 + '</div>'
                             const html = containerStart
@@ -364,7 +367,7 @@
                 if (spinner.length) {
                     $(elid + ' span').remove()
                 } else {
-                    $(elid).append('<span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>')
+                    $(elid).append('&nbsp;<span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>')
                 }
             }
             function testCallbackUrl(btn, icon, callUrl) {
@@ -376,7 +379,6 @@
                 $.ajax({
                     type: 'head',
                     url: callUrl,
-                    crossDomain: true,
                     complete: () => {
                         icon.removeClass('spin-element')
                         btn.removeClass('btn-light')
@@ -393,6 +395,7 @@
                         console.log(result)
                         btn.addClass('btn-danger')
                         icon.text('error')
+                        updateAlert("danger", "The Callback URL is unreachable or is not responding with the proper CORS header. The URL may still be valid and the only way to know is to give it a go anyway.")
                     }
                 })
             }
@@ -409,17 +412,26 @@
                 $('#delete-webhook-id').text(id)
             }
             function clearAlert() {
-                const alert = $('#new-webhook-response-alert')
-                alert.removeClass('alert-success')
-                alert.removeClass('alert-danger')
-                alert.hide()
+                const alertContainer = $('#new-webhook-response-alert')
+                const alert = $('#alert-message')
+                const icon = $('#alert-icon')
+                icon.text("")
+                alert.text("")
+                alertContainer.removeClass('alert-success')
+                alertContainer.removeClass('alert-danger')
+                alertContainer.hide()
             }
             function updateAlert(type, text) {
-                const alert = $('#new-webhook-response-alert')
-                alert.show()
+                const alertContainer = $('#new-webhook-response-alert')
+                const alert = $('#alert-message')
+                const icon = $('#alert-icon')
+                var iconText = type === "danger" ? "error" : type === "warning" ? "warning" : "check_circle"
+                console.log('iconText : ' + iconText)
+                clearAlert()
+                icon.text(iconText)
+                alertContainer.show()
                 alert.text(text)
-                alert.addClass('alert-' + type)
-                alert.append('<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" style="float:right"></button>')
+                alertContainer.addClass('alert-' + type)
             }
             function upsertWebhook(method, url) {
                 toggleSpinner('#btn-submit')
@@ -466,7 +478,6 @@
             var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
                 return new bootstrap.Popover(popoverTriggerEl)
             })
-
         })
     </script>
     <style>
@@ -588,7 +599,7 @@
                                 <label for="callbackURL">Callback URL:</label>
                                 <div class="input-group mb-3">
                                     <input type="text" id="webhook-callbackURL" class="form-control" name="callbackURL" autocomplete="off" />
-                                    <button class="btn btn-secondary" type="button" id="_disabled-btn-test-callbackurl" data-bs-toggle="popover" title="Test URL Disabled" data-bs-content="CORS is causing me some headaches. If you know how and want to help, feel free to reach out."><span id="test-callbackurl-icon" class="material-icons">public</span></button>
+                                    <button class="btn btn-secondary" type="button" id="btn-test-callbackurl"><span id="test-callbackurl-icon" class="material-icons">public</span></button>
                                 </div>
                             </div>
 
@@ -619,7 +630,9 @@
                 </div>
                 <div id="new-webhook-response-container">
                     <div id="new-webhook-response-alert" class="alert" role="alert">
-                        A simple success alert—check it out!
+                        <span id="alert-icon" class="material-icons"></span>
+                        <button id="close-alert" type="button" class="btn-close" style="float:right"></button>
+                        <span id="alert-message"></span>
                     </div>
                 </div>
             </div>
