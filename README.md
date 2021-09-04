@@ -1,1 +1,0 @@
-# trello-webhook-manager
