@@ -8,6 +8,10 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM " crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
     <script>
         $(document).ready(() => {
             const api = "https://api.trello.com/1"
@@ -80,12 +84,12 @@
                 const icon = $('#test-callbackurl-icon')
                 if (callUrl.val()) {
                     btn.prop('disabled', false)
-                    btn.addClass('btn-primary')
+                    btn.addClass('btn-trello')
                     btn.removeClass('btn-secondary')
                 } else {
                     btn.prop('disabled', true)
                     btn.addClass('btn-secondary')
-                    btn.removeClass('btn-primary')
+                    btn.removeClass('btn-trello')
                     btn.removeClass('btn-success')
                     icon.text('public')
                 }
@@ -219,7 +223,7 @@
                                 read: 'true',
                                 write: 'true'
                             },
-                            return_url: 'https://trellowebhooks.devtechfm.com',
+                            return_url: 'https://trellowebhookmanager.com',
                             expiration: 'never',
                             success: authenticationSuccess,
                             error: authenticationFailure
@@ -451,7 +455,7 @@
                     contentType: 'application/json',
                     success: (result) => {
                         console.log('success')
-                        updateAlert('success', 'Webhook '+ (method == "post" ? "created" : "updated") +' successfully!')
+                        updateAlert('success', 'Webhook ' + (method == "post" ? "created" : "updated") + ' successfully!')
                     },
                     error: (result) => {
                         console.log(result)
@@ -481,8 +485,54 @@
         })
     </script>
     <style>
+        :root {
+            --primaryColor: #0052cc;
+            --secondaryColor: #172b4d;
+            --mainFont: Roboto;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: var(--mainFont);
+        }
+
+        #main-container {
+            min-height: calc(100vh - 100px);
+        }
+
+        #header-row {
+            background: var(--primaryColor);
+            color: white;
+            padding: 20px;
+            border-bottom-left-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+
+        #trello-logo {
+            background: url('https://trellowebhookmanager.com/icon-gradient-white-trello.svg');
+            width: 50px;
+            height: 50px;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            display: inline-block;
+        }
+
+
+        #title {
+            vertical-align: top;
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primaryColor);
+            border-color: var(--primaryColor);
+        }
+
         .row {
             margin-bottom: 20px;
+        }
+
+        .row-no-bottom {
+            margin-bottom: 0px !important;
         }
 
         pre {
@@ -508,6 +558,11 @@
             top: -1px;
         }
 
+        #auth-info {
+            display: inline-block;
+            font-size: 20px;
+        }
+
         #authorized-section,
         #unauthorized-section,
         #btn-deauth,
@@ -520,7 +575,7 @@
         }
 
         #new-webhook-response-alert {
-            display:none;
+            display: none;
         }
 
         .spin-element {
@@ -544,186 +599,257 @@
             position: absolute;
             right: 0;
         }
+
+        .btn-trello {
+            color: #FFFFFF;
+            background-color: var(--primaryColor);
+            border-color: var(--primaryColor);
+        }
+
+            .btn-trello:hover,
+            .btn-trello:focus,
+            .btn-trello:active,
+            .btn-trello.active,
+            .open .dropdown-toggle.btn-trello {
+                color: #FFFFFF;
+                background-color: var(--secondaryColor);
+                border-color: var(--secondaryColor);
+            }
+
+            .btn-trello:active,
+            .btn-trello.active,
+            .open .dropdown-toggle.btn-trello {
+                background-image: none;
+            }
+
+            .btn-trello.disabled,
+            .btn-trello[disabled],
+            fieldset[disabled] .btn-trello,
+            .btn-trello.disabled:hover,
+            .btn-trello[disabled]:hover,
+            fieldset[disabled] .btn-trello:hover,
+            .btn-trello.disabled:focus,
+            .btn-trello[disabled]:focus,
+            fieldset[disabled] .btn-trello:focus,
+            .btn-trello.disabled:active,
+            .btn-trello[disabled]:active,
+            fieldset[disabled] .btn-trello:active,
+            .btn-trello.disabled.active,
+            .btn-trello[disabled].active,
+            fieldset[disabled] .btn-trello.active {
+                background-color: var(--primaryColor);
+                border-color: var(--primaryColor);
+            }
+
+            .btn-trello .badge {
+                color: var(--primaryColor);
+                background-color: #FFFFFF;
+            }
+
+        .footer {
+            height: 50px;
+        }
+
+        #logo {
+            background: url('https://trellowebhookmanager.com/logo-gradient-neutral-trello.svg');
+            width: 100px;
+            height: 100px;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: contain;
+            display: inline-block;
+        }
     </style>
 </head>
 
-<body id="body" class="container">
-    <div class="row">
-        <div class="col">
-            <h1>Trello Webhook Manager</h1>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-2">
-            <h3>Authorization</h3>
-        </div>
-        <div class="col">
-            <div class="form-check form-switch" style="padding-top: 8px">
-                <input class="form-check-input" type="checkbox" id="auth-method-option" checked>
-                <label class="form-check-label" id="lbl-auth-method-option" for="auth-method-option">Personal Authorization</label>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-3 auth-fields">
-            <input type="password" class="form-control" id="apiKey" placeholder="API Key" name="apikey" value="">
-        </div>
-        <div class="col-3 auth-fields">
-            <input type="password" class="form-control" id="apitoken" placeholder="API Token" name="apitoken" value="">
-        </div>
-        <div class="col-3">
-            <button type="button" class="btn btn-primary" id="btn-load-auth">
-                Authorize
-            </button>
-            <button type="button" class="btn btn-danger" id="btn-deauth">Deauthorize</button>
-        </div>
-
-    </div>
-    <div id="authorized-section">
-        <div class="row">
+<body id="body">
+    <div id="main-container" class="container">
+        <div id="header-row" class="row">
             <div class="col">
-                <h3>Register a New Webhook</h3>
+                <h1>
+                    <span id="trello-logo"></span>
+                    <span id="title">Trello Webhook Manager</span>
+                </h1>
             </div>
         </div>
-        <div class="row">
-            <div class="col-md-12 col-lg-5 bottomspace-medium">
-                <div class="card">
-                    <div class="card-body">
-                        <form>
-                            <div class="mb-3">
-                                <label for="description">Description:</label>
-                                <input type="text" id="webhook-description" class="form-control w-100" name="description" autocomplete="off" />
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="callbackURL">Callback URL:</label>
-                                <div class="input-group mb-3">
-                                    <input type="text" id="webhook-callbackURL" class="form-control" name="callbackURL" autocomplete="off" />
-                                    <button class="btn btn-secondary" type="button" id="btn-test-callbackurl"><span id="test-callbackurl-icon" class="material-icons">public</span></button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="idModel">ID of the Model:</label>
-                                <div class="input-group mb-3">
-                                    <input id="webhook-model-id" type="text" class="form-control">
-                                    <button class="btn btn-secondary" type="button" id="btn-find-model"><span class="material-icons">search</span></button>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <button type="button" id="btn-submit" class="btn btn-primary">Submit</button>
-                                <div id="edit-mode-buttons">
-                                    <button type="button" id="btn-update" class="btn btn-primary">Update</button>
-                                    <button type="button" id="btn-cancel-edit" class="btn btn-secondary">Cancel</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-12 col-lg-7">
-                <div id="new-webhook-payload-container" class="card bg-dark">
-                    <div class="card-body">
-                        <pre id="webhook-payload" class="text-white"></pre>
-                    </div>
-                </div>
-                <div id="new-webhook-response-container">
-                    <div id="new-webhook-response-alert" class="alert" role="alert">
-                        <span id="alert-icon" class="material-icons"></span>
-                        <button id="close-alert" type="button" class="btn-close" style="float:right"></button>
-                        <span id="alert-message"></span>
-                    </div>
-                </div>
+        <div class="row row-no-bottom">
+            <div class="col-2">
+                <h3>Authorization</h3>
             </div>
         </div>
         <div class="row">
             <div class="col">
-                <h3>Your Webhooks</h3>
+                <div class="form-check form-switch" style="padding-top: 8px">
+                    <input class="form-check-input" type="checkbox" id="auth-method-option" checked>
+                    <label class="form-check-label" id="lbl-auth-method-option" for="auth-method-option">Personal Authorization</label>
+                    <span id="auth-info" class="material-icons-outlined" data-bs-trigger="hover" data-bs-placement="bottom" data-bs-toggle="popover" title="Authorization Method" data-bs-html="true" data-bs-content="Choose between Personal authorization using your own API Key and Token or opt to have the application be authorized through Trello.<br /><br />Note: Webhooks are registered to the API Key that created them. Meaning, if you switch between authorization methods you will have a different set of webhooks.">info</span>
+                </div>
             </div>
         </div>
         <div class="row">
-            <div class="col-4">
-                <button type="button" id="btn-get-webhooks" class="btn btn-secondary">Get Webhooks</button>
+            <div class="col-3 auth-fields">
+                <input type="password" class="form-control" id="apiKey" placeholder="API Key" name="apikey" value="">
             </div>
-        </div>
-        <div class="row">
-            <div id="existing-webhooks-container" class="col"></div>
-        </div>
-    </div>
-    <div id="unauthorized-section">
-        <div class="row">
-            <div class="col">
-                <p class="text-danger">Invalid API Key or Token.</p>
+            <div class="col-3 auth-fields">
+                <input type="password" class="form-control" id="apitoken" placeholder="API Token" name="apitoken" value="">
             </div>
+            <div class="col-3">
+                <button type="button" class="btn btn-trello" id="btn-load-auth">
+                    Authorize
+                </button>
+                <button type="button" class="btn btn-danger" id="btn-deauth">Deauthorize</button>
+            </div>
+
         </div>
-    </div>
-    <div id="find-model-modal" class="modal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title">Model Browser</h3>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div id="authorized-section">
+            <div class="row">
+                <div class="col">
+                    <h3>Register a New Webhook</h3>
                 </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col">
-                            <h5>Boards</h5>
-                            <div class="dropdown">
-                                <button id="ddl-boards-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Board</button>
-                                <ul id="ddl-boards" class="dropdown-menu" aria-labelledby="ddl-boards-button"></ul>
+            </div>
+            <div class="row">
+                <div class="col-md-12 col-lg-5 bottomspace-medium">
+                    <div class="card">
+                        <div class="card-body">
+                            <form>
+                                <div class="mb-3">
+                                    <label for="description">Description:</label>
+                                    <input type="text" id="webhook-description" class="form-control w-100" name="description" autocomplete="off" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="callbackURL">Callback URL:</label>
+                                    <div class="input-group mb-3">
+                                        <input type="text" id="webhook-callbackURL" class="form-control" name="callbackURL" autocomplete="off" />
+                                        <button class="btn btn-secondary" type="button" id="btn-test-callbackurl"><span id="test-callbackurl-icon" class="material-icons">public</span></button>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="idModel">ID of the Model:</label>
+                                    <div class="input-group mb-3">
+                                        <input id="webhook-model-id" type="text" class="form-control">
+                                        <button class="btn btn-secondary" type="button" id="btn-find-model"><span class="material-icons">search</span></button>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <button type="button" id="btn-submit" class="btn btn-trello">Submit</button>
+                                    <div id="edit-mode-buttons">
+                                        <button type="button" id="btn-update" class="btn btn-trello">Update</button>
+                                        <button type="button" id="btn-cancel-edit" class="btn btn-secondary">Cancel</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12 col-lg-7">
+                    <div id="new-webhook-payload-container" class="card bg-dark">
+                        <div class="card-body">
+                            <pre id="webhook-payload" class="text-white"></pre>
+                        </div>
+                    </div>
+                    <div id="new-webhook-response-container">
+                        <div id="new-webhook-response-alert" class="alert" role="alert">
+                            <span id="alert-icon" class="material-icons"></span>
+                            <button id="close-alert" type="button" class="btn-close" style="float:right"></button>
+                            <span id="alert-message"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <h3>Your Webhooks</h3>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-4">
+                    <button type="button" id="btn-get-webhooks" class="btn btn-trello">Get Webhooks</button>
+                </div>
+            </div>
+            <div class="row">
+                <div id="existing-webhooks-container" class="col"></div>
+            </div>
+        </div>
+        <div id="unauthorized-section">
+            <div class="row">
+                <div class="col">
+                    <p class="text-danger">Invalid API Key or Token.</p>
+                </div>
+            </div>
+        </div>
+        <div id="find-model-modal" class="modal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Model Browser</h3>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col">
+                                <h5>Boards</h5>
+                                <div class="dropdown">
+                                    <button id="ddl-boards-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Board</button>
+                                    <ul id="ddl-boards" class="dropdown-menu" aria-labelledby="ddl-boards-button"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <h5>Lists</h5>
+                                <div class="dropdown">
+                                    <button id="ddl-lists-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a List</button>
+                                    <ul id="ddl-lists" class="dropdown-menu" aria-labelledby="ddl-lists-button"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <h5>Cards</h5>
+                                <div class="dropdown">
+                                    <button id="ddl-cards-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Card</button>
+                                    <ul id="ddl-cards" class="dropdown-menu" aria-labelledby="ddl-cards-button"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <pre id="find-model-output"></pre>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col">
-                            <h5>Lists</h5>
-                            <div class="dropdown">
-                                <button id="ddl-lists-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a List</button>
-                                <ul id="ddl-lists" class="dropdown-menu" aria-labelledby="ddl-lists-button"></ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col">
-                            <h5>Cards</h5>
-                            <div class="dropdown">
-                                <button id="ddl-cards-button" class="btn btn-default dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Select a Card</button>
-                                <ul id="ddl-cards" class="dropdown-menu" aria-labelledby="ddl-cards-button"></ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col">
-                            <pre id="find-model-output"></pre>
-                        </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-trello" data-bs-dismiss="modal">Done</button>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Done</button>
+            </div>
+        </div>
+        <div id="delete-webhook-modal" class="modal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Delete Webhook</h3>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <p>Are you sure you want to delete this webhook?</p>
+                            <pre id="delete-webhook-id"></pre>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button id="btn-confirm-webhook-delete" type="button" class="btn btn-danger" data-bs-dismiss="modal">Delete</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div id="delete-webhook-modal" class="modal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title">Delete Webhook</h3>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="row">
-                        <p>Are you sure you want to delete this webhook?</p>
-                        <pre id="delete-webhook-id"></pre>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button id="btn-confirm-webhook-delete" type="button" class="btn btn-danger" data-bs-dismiss="modal">Delete</button>
-                </div>
-            </div>
-        </div>
+    <div class="container footer text-center">
+        <div id="logo"></div>
     </div>
 </body>
 
