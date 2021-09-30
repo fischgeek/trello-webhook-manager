@@ -520,7 +520,6 @@
             display: inline-block;
         }
 
-
         #title {
             vertical-align: top;
         }
@@ -662,6 +661,10 @@
             background-size: contain;
             display: inline-block;
         }
+
+        .bottomspace {
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 
@@ -690,19 +693,16 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-3 auth-fields">
+            <div class="col-xs-6 col-md-4 auth-fields bottomspace">
                 <input type="password" class="form-control" id="apiKey" placeholder="API Key" name="apikey" value="">
             </div>
-            <div class="col-3 auth-fields">
+            <div class="col-xs-6 col-md-4 auth-fields bottomspace">
                 <input type="password" class="form-control" id="apitoken" placeholder="API Token" name="apitoken" value="">
             </div>
-            <div class="col-3">
-                <button type="button" class="btn btn-trello" id="btn-load-auth">
-                    Authorize
-                </button>
+            <div class="col-xs-6 col-sm-6 col-md-4 bottomspace">
+                <button type="button" class="btn btn-trello" id="btn-load-auth">Authorize</button>
                 <button type="button" class="btn btn-danger" id="btn-deauth">Deauthorize</button>
             </div>
-
         </div>
         <div id="authorized-section">
             <div class="row">
